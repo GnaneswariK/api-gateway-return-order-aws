@@ -1,0 +1,67 @@
+
+  
+server:
+  port: 9191
+
+    
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://localhost:8761/eureka
+  instance:
+    hostname: localhost
+      
+
+
+spring:
+  application:
+    name: cloud-gateway
+  config:
+    import: optional:configserver:http://localhost:8888
+  cloud:
+    gateway:
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: "*"
+            allowedMethods:
+              - GET
+              - POST
+      discovery:
+        locator:
+          enabled: true
+      routes:
+        - id: component-processing-service
+          uri: lb://component-processing-service
+          predicates:
+            - Path=/returns/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: component-processing-service
+                fallbackUri: forward:/returnFallback
+
+        - id: packaging-and-delivery-service
+          uri: lb://packaging-and-delivery-service
+          predicates:
+            - Path=/packagingAndDelivery/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: packaging-and-delivery-service
+                fallbackUri: forward:/packagingAndDeliveryFallback
+            - RewritePath=/packagingAndDelivery/(?<path>.*), /$\{path}
+
+        - id: authorization-service
+          uri: lb://authorization-service
+          predicates:
+            - Path=/auth/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: authorization-service
+                fallbackUri: forward:/authFallback
+          
+
+          
